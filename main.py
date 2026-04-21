@@ -1,99 +1,110 @@
 import flet as ft
-import os
 
 # --- UNIT V: OOP & CLASS ---
 class Account:
-    def __init__(self, acc_no, holder, balance=0):
+    def __init__(self, acc_no, holder, balance=0.0):
         self.acc_no = acc_no
         self.holder = holder
         self.balance = float(balance)
 
     def deposit(self, amount):
         self.balance += amount
-        return f"Deposited: {amount}. New Balance: {self.balance}"
+        return f"Deposited: ₹{amount:.2f}. New Balance: ₹{self.balance:.2f}"
 
-    # --- UNIT I & VI: CONDITIONS & EXCEPTIONS ---
     def withdraw(self, amount):
         if amount > self.balance:
             raise ValueError("Insufficient Funds!")
         self.balance -= amount
-        return f"Withdrawn: {amount}. New Balance: {self.balance}"
+        return f"Withdrawn: ₹{amount:.2f}. New Balance: ₹{self.balance:.2f}"
 
-# --- MAIN APP UI ---
 def main(page: ft.Page):
+    # --- PAGE SETTINGS (For All Mobiles) ---
     page.title = "Team 4: Banking System"
     page.theme_mode = "light"
-    
-    # --- UNIT III: DICTIONARY (Data Storage) ---
-    accounts_db = {} 
+    page.padding = 20
+    page.scroll = "auto" # Chinna mobile-na scroll option varum
+    page.vertical_alignment = "start"
 
-    # --- UNIT IV: FILE HANDLING (Read) ---
+    # --- DATA STORAGE (Using Client Storage instead of .txt) ---
+    # Idhu ella mobile-layum permission illama work aagum
+    accounts_db = {}
+
     def load_data():
-        if os.path.exists("banking_data.txt"):
-            with open("banking_data.txt", "r") as f:
-                for line in f:
-                    acc_no, name, bal = line.strip().split(",")
-                    accounts_db[acc_no] = Account(acc_no, name, bal)
+        stored_data = page.client_storage.get("banking_data")
+        if stored_data:
+            for acc_no, details in stored_data.items():
+                accounts_db[acc_no] = Account(acc_no, details['name'], details['balance'])
 
     def save_data():
-        with open("banking_data.txt", "w") as f:
-            for acc in accounts_db.values():
-                f.write(f"{acc.acc_no},{acc.holder},{acc.balance}\n")
+        data_to_store = {
+            acc_no: {"name": acc.holder, "balance": acc.balance}
+            for acc_no, acc in accounts_db.items()
+        }
+        page.client_storage.set("banking_data", data_to_store)
 
     load_data()
 
     # --- UI COMPONENTS ---
-    acc_input = ft.TextField(label="Account Number", width=300)
-    name_input = ft.TextField(label="Account Holder Name", width=300)
-    amt_input = ft.TextField(label="Amount", width=300, prefix_text="?")
-    output_text = ft.Text(value="Welcome! Enter details.", color="blue", size=18)
+    acc_input = ft.TextField(label="Account Number", border_radius=10, keyboard_type=ft.KeyboardType.NUMBER)
+    name_input = ft.TextField(label="Account Holder Name", border_radius=10)
+    amt_input = ft.TextField(label="Amount", prefix_text="₹", border_radius=10, keyboard_type=ft.KeyboardType.NUMBER)
+    output_text = ft.Text(value="Welcome! Enter details.", color="blue", size=16, weight="bold", text_align="center")
 
-    # --- UNIT II: FUNCTIONS (Transactions) ---
     def create_acc_click(e):
-        acc_no = acc_input.value
-        name = name_input.value
-        if acc_no and name:
-            accounts_db[acc_no] = Account(acc_no, name)
+        if acc_input.value and name_input.value:
+            accounts_db[acc_input.value] = Account(acc_input.value, name_input.value)
             save_data()
-            output_text.value = f"Account created for {name}!"
+            output_text.value = f"Account created for {name_input.value}!"
+            output_text.color = "green"
+            page.update()
+        else:
+            output_text.value = "Please fill all fields!"
+            output_text.color = "red"
             page.update()
 
     def deposit_click(e):
         try:
             acc_no = acc_input.value
             amount = float(amt_input.value)
-            res = accounts_db[acc_no].deposit(amount)
-            save_data()
-            output_text.value = res
+            if acc_no in accounts_db:
+                res = accounts_db[acc_no].deposit(amount)
+                save_data()
+                output_text.value = res
+                output_text.color = "green"
+            else:
+                output_text.value = "Account not found!"
+                output_text.color = "red"
         except Exception as ex:
             output_text.value = f"Error: {str(ex)}"
+            output_text.color = "red"
         page.update()
 
     def withdraw_click(e):
         try:
             acc_no = acc_input.value
             amount = float(amt_input.value)
-            res = accounts_db[acc_no].withdraw(amount)
-            save_data()
-            output_text.value = res
+            if acc_no in accounts_db:
+                res = accounts_db[acc_no].withdraw(amount)
+                save_data()
+                output_text.value = res
+                output_text.color = "green"
+            else:
+                output_text.value = "Account not found!"
+                output_text.color = "red"
         except Exception as ex:
-            output_text.value = f"Error: {str(ex)}" # ERROR HANDLING
+            output_text.value = f"Error: {str(ex)}"
+            output_text.color = "red"
         page.update()
 
-    # --- ADDING TO PAGE ---
+    # --- RESPONSIVE UI LAYOUT ---
     page.add(
-        ft.Column([
-            ft.Text("Secure Banking System", size=30, weight="bold"),
-            acc_input,
-            name_input,
-            amt_input,
-            ft.Row([
-                ft.ElevatedButton("Create Account", on_click=create_acc_click),
-                ft.ElevatedButton("Deposit", on_click=deposit_click),
-                ft.ElevatedButton("Withdraw", on_click=withdraw_click),
-            ]),
-            output_text
-        ], alignment="center", horizontal_alignment="center")
+        ft.SafeArea( # Mobile notch-kaga
+            ft.Column(, alignment="center", spacing=10),
+                ft.Container(padding=10), # Space
+                output_text
+            ], horizontal_alignment="center", spacing=15)
+        )
     )
 
-ft.app(target=main)
+# Indha AppView parameter thaan mobile-la white screen varaama thadukkum
+ft.app(target=main, view=ft.AppView.FLET_APP)
