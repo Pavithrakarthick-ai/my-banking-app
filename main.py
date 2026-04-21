@@ -1,6 +1,5 @@
 import flet as ft
 
-# --- UNIT V: OOP & CLASS ---
 class Account:
     def __init__(self, acc_no, holder, balance=0.0):
         self.acc_no = acc_no
@@ -18,15 +17,11 @@ class Account:
         return f"Withdrawn: ₹{amount:.2f}. New Balance: ₹{self.balance:.2f}"
 
 def main(page: ft.Page):
-    # --- PAGE SETTINGS (For All Mobiles) ---
     page.title = "Team 4: Banking System"
     page.theme_mode = "light"
     page.padding = 20
-    page.scroll = "auto" # Chinna mobile-na scroll option varum
-    page.vertical_alignment = "start"
-
-    # --- DATA STORAGE (Using Client Storage instead of .txt) ---
-    # Idhu ella mobile-layum permission illama work aagum
+    page.scroll = "auto"
+    
     accounts_db = {}
 
     def load_data():
@@ -44,11 +39,10 @@ def main(page: ft.Page):
 
     load_data()
 
-    # --- UI COMPONENTS ---
     acc_input = ft.TextField(label="Account Number", border_radius=10, keyboard_type=ft.KeyboardType.NUMBER)
     name_input = ft.TextField(label="Account Holder Name", border_radius=10)
     amt_input = ft.TextField(label="Amount", prefix_text="₹", border_radius=10, keyboard_type=ft.KeyboardType.NUMBER)
-    output_text = ft.Text(value="Welcome! Enter details.", color="blue", size=16, weight="bold", text_align="center")
+    output_text = ft.Text(value="Welcome!", color="blue", size=16, weight="bold", text_align="center")
 
     def create_acc_click(e):
         if acc_input.value and name_input.value:
@@ -56,10 +50,6 @@ def main(page: ft.Page):
             save_data()
             output_text.value = f"Account created for {name_input.value}!"
             output_text.color = "green"
-            page.update()
-        else:
-            output_text.value = "Please fill all fields!"
-            output_text.color = "red"
             page.update()
 
     def deposit_click(e):
@@ -96,15 +86,12 @@ def main(page: ft.Page):
             output_text.color = "red"
         page.update()
 
-    # --- RESPONSIVE UI LAYOUT ---
     page.add(
-        ft.SafeArea( # Mobile notch-kaga
+        ft.SafeArea(
             ft.Column(, alignment="center", spacing=10),
-                ft.Container(padding=10), # Space
                 output_text
             ], horizontal_alignment="center", spacing=15)
         )
     )
 
-# Indha AppView parameter thaan mobile-la white screen varaama thadukkum
 ft.app(target=main, view=ft.AppView.FLET_APP)
