@@ -1,15 +1,19 @@
 import flet as ft
+import os
 
+# --- UNIT V: OOP & CLASS ---
 class Account:
     def __init__(self, acc_no, holder, balance=0.0):
         self.acc_no = acc_no
         self.holder = holder
         self.balance = float(balance)
 
+    # --- UNIT II: FUNCTIONS (Deposit) ---
     def deposit(self, amount):
         self.balance += amount
         return f"Deposited: ₹{amount:.2f}. New Balance: ₹{self.balance:.2f}"
 
+    # --- UNIT I & VI: CONDITIONS & EXCEPTIONS ---
     def withdraw(self, amount):
         if amount > self.balance:
             raise ValueError("Insufficient Funds!")
@@ -18,31 +22,34 @@ class Account:
 
 def main(page: ft.Page):
     page.title = "Team 4: Banking System"
-    page.theme_mode = "light"
-    page.padding = 20
-    page.scroll = "auto"
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.scroll = ft.ScrollMode.AUTO
     
-    accounts_db = {}
+    # --- UNIT III: DICTIONARY (Data Storage) ---
+    accounts_db = {} 
 
+    # --- UNIT IV: FILE HANDLING (Mobile-kaga logic maathiyacha) ---
+    # Mobile-la .txt direct-ah work aagathunala 'client_storage' use panrom
     def load_data():
-        stored_data = page.client_storage.get("banking_data")
-        if stored_data:
-            for acc_no, details in stored_data.items():
-                accounts_db[acc_no] = Account(acc_no, details['name'], details['balance'])
+        stored = page.client_storage.get("banking_data")
+        if stored:
+            for acc_no, data in stored.items():
+                accounts_db[acc_no] = Account(acc_no, data['name'], data['balance'])
 
     def save_data():
-        data_to_store = {
+        data_to_save = {
             acc_no: {"name": acc.holder, "balance": acc.balance}
             for acc_no, acc in accounts_db.items()
         }
-        page.client_storage.set("banking_data", data_to_store)
+        page.client_storage.set("banking_data", data_to_save)
 
     load_data()
 
+    # --- UI COMPONENTS ---
     acc_input = ft.TextField(label="Account Number", border_radius=10, keyboard_type=ft.KeyboardType.NUMBER)
     name_input = ft.TextField(label="Account Holder Name", border_radius=10)
     amt_input = ft.TextField(label="Amount", prefix_text="₹", border_radius=10, keyboard_type=ft.KeyboardType.NUMBER)
-    output_text = ft.Text(value="Welcome!", color="blue", size=16, weight="bold", text_align="center")
+    output_text = ft.Text(value="Welcome!", color="blue", size=16, weight="bold")
 
     def create_acc_click(e):
         if acc_input.value and name_input.value:
@@ -66,7 +73,6 @@ def main(page: ft.Page):
                 output_text.color = "red"
         except Exception as ex:
             output_text.value = f"Error: {str(ex)}"
-            output_text.color = "red"
         page.update()
 
     def withdraw_click(e):
@@ -83,14 +89,20 @@ def main(page: ft.Page):
                 output_text.color = "red"
         except Exception as ex:
             output_text.value = f"Error: {str(ex)}"
-            output_text.color = "red"
         page.update()
 
+    # --- UI LAYOUT ---
     page.add(
         ft.SafeArea(
-            ft.Column(, alignment="center", spacing=10),
-                output_text
-            ], horizontal_alignment="center", spacing=15)
+            ft.Column(
+                controls=,
+                        alignment=ft.MainAxisAlignment.CENTER
+                    ),
+                    output_text
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=15
+            )
         )
     )
 
