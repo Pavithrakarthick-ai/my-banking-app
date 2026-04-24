@@ -1,7 +1,8 @@
 import flet as ft
 from datetime import datetime
+import os
 
-
+# --- UNIT V: OOP & CLASS ---
 class Account:
     def __init__(self, acc_no, holder, balance=0.0, history=None):
         self.acc_no = acc_no
@@ -16,7 +17,7 @@ class Account:
             "type": "Deposit",
             "amount": amount
         })
-        return f"Deposited: ₹{amount:.2f}. New Balance: ₹{self.balance:.2f}"
+        return f"Deposited: {amount}. New Balance: {self.balance}"
 
     def withdraw(self, amount):
         if amount > self.balance:
@@ -24,216 +25,83 @@ class Account:
         self.balance -= amount
         self.history.append({
             "date": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "type": "Withdraw",
+            "type": "Withdrawal",
             "amount": amount
         })
-        return f"Withdrawn: ₹{amount:.2f}. New Balance: ₹{self.balance:.2f}"
+        return f"Withdrawn: {amount}. New Balance: {self.balance}"
 
+# Android-la crash aagama irukka file path settings
+DATA_FILE = os.path.join(os.getcwd(), "banking_data.txt")
 
 def main(page: ft.Page):
-    page.title = "Banking System"
-    page.theme_mode = ft.ThemeMode.LIGHT
-    page.padding = 20
-    page.scroll = ft.ScrollMode.AUTO
-
+    page.title = "Team 4: Banking System"
+    page.scroll = "auto"
     accounts_db = {}
 
     def load_data():
-        try:
-            stored = page.client_storage.get("banking_data")
-            if stored and isinstance(stored, dict):
-                for acc_no, data in stored.items():
-                    accounts_db[acc_no] = Account(
-                        acc_no,
-                        data.get('name', ''),
-                        data.get('balance', 0.0),
-                        data.get('history', [])
-                    )
-        except Exception:
-            pass
+        if os.path.exists(DATA_FILE):
+            try:
+                with open(DATA_FILE, "r") as f:
+                    for line in f:
+                        parts = line.strip().split(",")
+                        if len(parts) >= 3:
+                            acc_no, name, bal = parts[0], parts[1], parts[2]
+                            accounts_db[acc_no] = Account(acc_no, name, bal)
+            except Exception:
+                pass # Crash aagama irukka skip panrom
 
     def save_data():
         try:
-            data_to_save = {
-                acc_no: {
-                    "name": acc.holder,
-                    "balance": acc.balance,
-                    "history": acc.history
-                }
-                for acc_no, acc in accounts_db.items()
-            }
-            page.client_storage.set("banking_data", data_to_save)
+            with open(DATA_FILE, "w") as f:
+                for acc in accounts_db.values():
+                    f.write(f"{acc.acc_no},{acc.holder},{acc.balance}\n")
         except Exception:
             pass
 
     load_data()
 
-    acc_input = ft.TextField(
-        label="Account Number",
-        border_radius=10,
-        keyboard_type=ft.KeyboardType.NUMBER,
-        width=300
-    )
-    name_input = ft.TextField(
-        label="Account Holder Name",
-        border_radius=10,
-        width=300
-    )
-    amt_input = ft.TextField(
-        label="Amount",
-        prefix_text="₹",
-        border_radius=10,
-        keyboard_type=ft.KeyboardType.NUMBER,
-        width=300
-    )
-    output_text = ft.Text(
-        value="Welcome!",
-        color=ft.colors.BLUE,
-        size=16,
-        weight=ft.FontWeight.BOLD
-    )
-    history_list = ft.Column(controls=[], spacing=5)
-
-    def refresh_history():
-        history_list.controls.clear()
-        acc_no = acc_input.value.strip()
-        if acc_no in accounts_db:
-            txns = accounts_db[acc_no].history
-            if txns:
-                history_list.controls.append(
-                    ft.Text("Transaction History", weight=ft.FontWeight.BOLD, size=15)
-                )
-                for txn in reversed(txns):
-                    color = ft.colors.GREEN if txn["type"] == "Deposit" else ft.colors.RED
-                    history_list.controls.append(
-                        ft.Container(
-                            content=ft.Column(
-                                controls=[
-                                    ft.Text(
-                                        f"{txn['type']}  ₹{txn['amount']:.2f}",
-                                        color=color,
-                                        weight=ft.FontWeight.BOLD
-                                    ),
-                                    ft.Text(txn["date"], size=11, color=ft.colors.GREY),
-                                ],
-                                spacing=2
-                            ),
-                            bgcolor=ft.colors.GREY_100,
-                            border_radius=8,
-                            padding=10,
-                            width=300
-                        )
-                    )
-            else:
-                history_list.controls.append(
-                    ft.Text("No transactions yet.", color=ft.colors.GREY)
-                )
-        page.update()
+    # UI Elements
+    acc_input = ft.TextField(label="Account Number", width=300)
+    name_input = ft.TextField(label="Holder Name", width=300)
+    amt_input = ft.TextField(label="Amount", width=300, prefix_text="₹")
+    output_text = ft.Text(value="Welcome to Banking System", color="blue", size=16)
 
     def create_acc_click(e):
-        acc_no = acc_input.value.strip()
-        name = name_input.value.strip()
-        if acc_no and name:
-            if acc_no not in accounts_db:
-                accounts_db[acc_no] = Account(acc_no, name)
-                save_data()
-                output_text.value = f"Account created for {name}!"
-                output_text.color = ft.colors.GREEN
-            else:
-                output_text.value = "Account already exists!"
-                output_text.color = ft.colors.ORANGE
-        else:
-            output_text.value = "Enter account number and name!"
-            output_text.color = ft.colors.RED
-        refresh_history()
+        if acc_input.value and name_input.value:
+            accounts_db[acc_input.value] = Account(acc_input.value, name_input.value)
+            save_data()
+            output_text.value = f"Account created for {name_input.value}"
+            page.update()
 
     def deposit_click(e):
         try:
-            acc_no = acc_input.value.strip()
-            amount = float(amt_input.value.strip())
-            if acc_no in accounts_db:
-                res = accounts_db[acc_no].deposit(amount)
-                save_data()
-                output_text.value = res
-                output_text.color = ft.colors.GREEN
-            else:
-                output_text.value = "Account not found!"
-                output_text.color = ft.colors.RED
-        except ValueError as ex:
+            res = accounts_db[acc_input.value].deposit(float(amt_input.value))
+            save_data()
+            output_text.value = res
+        except Exception as ex:
             output_text.value = f"Error: {str(ex)}"
-            output_text.color = ft.colors.RED
-        refresh_history()
+        page.update()
 
     def withdraw_click(e):
         try:
-            acc_no = acc_input.value.strip()
-            amount = float(amt_input.value.strip())
-            if acc_no in accounts_db:
-                res = accounts_db[acc_no].withdraw(amount)
-                save_data()
-                output_text.value = res
-                output_text.color = ft.colors.GREEN
-            else:
-                output_text.value = "Account not found!"
-                output_text.color = ft.colors.RED
-        except ValueError as ex:
+            res = accounts_db[acc_input.value].withdraw(float(amt_input.value))
+            save_data()
+            output_text.value = res
+        except Exception as ex:
             output_text.value = f"Error: {str(ex)}"
-            output_text.color = ft.colors.RED
-        refresh_history()
+        page.update()
 
     page.add(
-        ft.Column(
-            controls=[
-                ft.Text(
-                    "🏦 Banking System",
-                    size=24,
-                    weight=ft.FontWeight.BOLD,
-                    text_align=ft.TextAlign.CENTER
-                ),
-                ft.Divider(),
-                acc_input,
-                name_input,
-                ft.ElevatedButton(
-                    text="Create Account",
-                    on_click=create_acc_click,
-                    width=300
-                ),
-                ft.Divider(),
-                amt_input,
-                ft.Row(
-                    controls=[
-                        ft.ElevatedButton(
-                            text="Deposit",
-                            on_click=deposit_click,
-                            bgcolor=ft.colors.GREEN,
-                            color=ft.colors.WHITE,
-                            width=130
-                        ),
-                        ft.ElevatedButton(
-                            text="Withdraw",
-                            on_click=withdraw_click,
-                            bgcolor=ft.colors.RED,
-                            color=ft.colors.WHITE,
-                            width=130
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER
-                ),
-                ft.ElevatedButton(
-                    text="View History",
-                    on_click=lambda e: refresh_history(),
-                    bgcolor=ft.colors.BLUE,
-                    color=ft.colors.WHITE,
-                    width=300
-                ),
-                output_text,
-                ft.Divider(),
-                history_list,
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=12
-        )
+        ft.Column([
+            ft.Text("Secure Banking", size=25, weight="bold"),
+            acc_input, name_input, amt_input,
+            ft.Row([
+                ft.ElevatedButton("Create", on_click=create_acc_click),
+                ft.ElevatedButton("Deposit", on_click=deposit_click),
+                ft.ElevatedButton("Withdraw", on_click=withdraw_click),
+            ]),
+            output_text
+        ], horizontal_alignment="center")
     )
-
 
 ft.app(target=main)
